@@ -6,7 +6,36 @@
 	</head>
 
 	<body onload="init()">
+		<div id="header">
+			<h1>Tic tac d'oh!</h1>
+			<h2>Beat smart AIs in these fun Tic tac toe variants!</h2>
+		</div>
+		<div id="main">
+			<div class="left">
+				<p>Choose the gamemode</p>
+				<select id="gamemode">
+					<option value="5 3 3">Classic</option>
+					<option value="3 3 3">Pieces can move</option>
+					<option value="8 4 4">4x4 grid</option>
+					<option value="32 8 4">Giant grid</option>
+					<option value="32 ">Giant grid, 5 to win</option>
+				</select>
 
-		<canvas id="canvas"></canvas>
+				<p>Choose the AI level</p>
+				<select id="ailevel">
+					<option value="0">Never wins (seriously)</option>
+					<option value="1">Noob</option>
+					<option value="2">Grandparent</option>
+					<option value="3">15yo</option>
+					<option value="4">Grandmaster</option>
+				</select>
+
+				<p>Apply - Warning, this will reset the current game!</p>
+				<a href="javascript:apply()"></a>
+			</div>
+			<div class="right">
+				<canvas id="canvas"></canvas>
+			</div>
+		</div>
 	</body>
 </html>
