@@ -1,0 +1,5 @@
+let canvas;
+
+function init() {
+
+}
