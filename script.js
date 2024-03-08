@@ -308,8 +308,8 @@ class MinimaxAi extends Ai {
 	}
 
 	score(win, deep) {
-		if (win <= 0) return 0;
-		return win == this.id ? 100+deep : -100-deep;
+		if (win < 1) return 0;
+		return win == this.id ? 20+deep : -20-deep;
 	}
 
 	minimax(board, deep, id, turn) {
@@ -366,14 +366,16 @@ class MinimaxAi extends Ai {
 		let m = min(scores), M = max(scores);
 		let chosen;
 		if (m[0] == M[0]) chosen = scores[parseInt(Math.random()*scores.length)];
-		else chosen = id == this.id ^ this.invert ? M : m;
+		else chosen = (id == this.id) ^ this.invert ? M : m;
 
 		// return score for recursion, or movement at the end
 		return chosen[deep+1 == this.deep ? 1 : 0];
 	}
 
 	play() {
-		let [a, b] = this.minimax(copyBoard(game.board), this.deep, this.id, game.turnCount);
+		let newB = [];
+		game.board.forEach(line => {newB.push([...line])});
+		let [a, b] = this.minimax(newB, this.deep, this.id, game.turnCount);
 		if (game.turnCount < game.maxPieces) game.board[b][a] = this.id;
 		else {
 			game.board[a[1]][a[0]] = 0;
@@ -381,12 +383,6 @@ class MinimaxAi extends Ai {
 		}
 		return true;
 	}
-}
-
-function copyBoard(board) {
-	let newB = [];
-	board.forEach(line => {newB.push([...line])});
-	return newB;
 }
 
 function max(scores) {
