@@ -1,8 +1,8 @@
 <html>
 	<head>
 		<title>Tic tac d'oh!</title>
-		<link rel="stylesheet" href="style.css?v=0.1">
-		<script src="script.js?v=0.1"></script>
+		<link rel="stylesheet" href="style.css?v=0.2">
+		<script src="script.js?v=0.2"></script>
 	</head>
 
 	<body onload="init()">
@@ -12,29 +12,32 @@
 		</div>
 		<div id="main">
 			<div class="left">
+				<p class="error">This game is in alpha. Please report bugs when you see them!</p>
 				<p>Choose the gamemode</p>
 				<select id="gamemode">
-					<option value="5 3 3">Classic</option>
-					<option value="3 3 3">Pieces can move</option>
-					<option value="8 4 4">4x4 grid</option>
-					<option value="32 8 4">Giant grid</option>
-					<option value="32 ">Giant grid, 5 to win</option>
+					<option value="3 5 3">Classic</option>
+					<option value="3 3 3">You can move pieces around</option>
+					<option value="4 8 4">4x4 grid</option>
+					<option value="4 4 4">4x4 grid, moving pieces</option>
+					<option value="8 32 4">Giant grid</option>
+					<option value="4 32 4">Giant grid, moving pieces</option>
 				</select>
 
 				<p>Choose the AI level</p>
 				<select id="ailevel">
-					<option value="0">Never wins (seriously)</option>
-					<option value="1">Noob</option>
-					<option value="2">Grandparent</option>
-					<option value="3">15yo</option>
-					<option value="4">Grandmaster</option>
+					<option value="0">Drunk Homer</option>
+					<option value="1">Homer</option>
+					<option value="2" selected="selected">Mr. Burns</option>
+					<option value="3">Bart</option>
+					<option value="4">Lisa</option>
 				</select>
 
-				<p>Apply - Warning, this will reset the current game!</p>
-				<a href="javascript:apply()"></a>
+				<div class="br"></div>
+				<p>Warning, the latter will reset the current game!</p>
+				<a href="javascript:apply()">Apply</a>
 			</div>
 			<div class="right">
-				<canvas id="canvas"></canvas>
+				<canvas id="canvas" width=700 height=700></canvas>
 			</div>
 		</div>
 	</body>
