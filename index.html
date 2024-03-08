@@ -1,8 +1,8 @@
 <html>
 	<head>
 		<title>Tic tac d'oh!</title>
-		<link rel="stylesheet" href="style.css?v=0.3">
-		<script src="script.js?v=0.3"></script>
+		<link rel="stylesheet" href="style.css?v=1.0">
+		<script src="script.js?v=1.0"></script>
 	</head>
 
 	<body onload="init()">
@@ -12,16 +12,17 @@
 		</div>
 		<div id="main">
 			<div class="left">
-				<p class="error">This game is in alpha. Please report bugs when you see them!</p>
+				<span class="error">This game is in beta. Please report bugs when you see them!</span>
 				<p>Choose the gamemode</p>
 				<select id="gamemode">
-					<option value="3 5 3">Classic</option>
-					<option value="3 3 3">You can move pieces around</option>
-					<option value="4 8 4">4x4 grid</option>
-					<option value="4 4 4">4x4 grid, moving pieces</option>
-					<option value="8 32 4">Giant grid</option>
-					<option value="4 32 4">Giant grid, moving pieces</option>
+					<option value="0">Classic</option>
+					<option value="1">You can move pieces around</option>
+					<option value="2">4x4 grid</option>
+					<option value="3">4x4 grid, moving pieces</option>
+					<option value="4">Giant grid</option>
+					<option value="5">Giant grid, moving pieces</option>
 				</select>
+				<p class="comment"></p>
 
 				<p>Choose the AI level</p>
 				<select id="ailevel">
@@ -31,10 +32,11 @@
 					<option value="3" selected="selected">Bart</option>
 					<option value="4">Lisa</option>
 				</select>
+				<p class="comment"></p>
 
 				<div class="br"></div>
 				<p>Warning, the latter will reset the current game!</p>
-				<a href="javascript:apply()">Apply</a>
+				<a href="javascript:newGame(true)">Apply</a>
 			</div>
 			<div class="right">
 				<canvas id="canvas" width=700 height=700></canvas>

@@ -69,7 +69,10 @@ h2 {
 }
 
 .left {
+	overflow: auto;
+
 	padding: 20px;
+	max-width: 400px;
 	height: calc(100% - 40px);
 
 	background-color: #474747;
@@ -92,12 +95,14 @@ p {
 	font-size: 16px;
 }
 
-.error {
-	color: #f77;
+p.comment {
+	font-family: varela;
+	font-size: 14px;
+	color: #ddd;
 }
 
-span {
-	font-size: 14px;
+span.error {
+	color: #f77;
 }
 
 select, a {

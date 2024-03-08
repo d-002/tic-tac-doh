@@ -1,9 +1,25 @@
 let canvas, ctx, H;
 let game;
 let gamesPlayed = 0;
-let fps = 60;
+let fps = 10;
 let deep = 6; // /2 turns ahead
 let interval;
+
+let settings = [NaN, NaN, NaN, NaN]; // size, pieces, required, AI level
+let gameValues = [[3, 5, 3], [3, 3, 3], [4, 8, 4], [4, 4, 4], [8, 32, 4], [8, 6, 4]];
+let comments = [
+	["Classic Tic tac toe game, 3x3 grid. Place pieces and line 3 in a row (horizontally, vertically or digonally) to win, while blocking your opponent!",
+	"First 3 rounds you place pieces, then you will have to move your pieces around to line them up. To move a piece, first click on it to select it, then click on a free, adjacent cell (to the right, left, up, down, or diagonally). This way there's no way you tie, and it's much more challenging and fun!",
+	"Classic Tic tac toe, but you need to line 4 in a row in this 4x4 grid!",
+	"Line 4 in a row in this 4x4 grid, but you can also move pieces! (refer to <strong>\"You can move pieces around\"</strong> for more information)",
+	"GIANT 8x8 GRID!!! You only need to line 4 pieces in a row, so you're free to go anywhere! <span class=\"error\">Lisa is not (yet) playable in this gamemode!</span>",
+	"Only for the grandmasters among you, since this 8x8 grid requires you to move your pieces around and line 4 in a row! You get 6 pieces. <span class=\"error\">Lisa is not (yet) playable in this gamemode!</span>"],
+	["You are playing against drunk Homer Simpson. He is so drunk he confuses his pieces and yours, so there's almost <strong>no way</strong> he wins!",
+	"You are playing against Homer Simpson. He doesn't really know how to play, and places kinda randomly because he's too busy eating doughnuts at the same time.",
+	"You are playing against Mr. Burns. He doesn't care about winning, he doesn't care about playing or enjoying the game, all he wants is to prevent you from winning. Try to outsmart him!",
+	"You are playing against Bart Simpson. He plays like an average human being, trying to win and to prevent you from doing the same. You can do this!",
+	"You are playing against Lisa Simpson. She has studied every possible strategy, and will never lose! She plans multiple turns ahead, and knows everything you are planning... At least try to tie!"]
+];
 
 class Game {
 	constructor(p1, p2, size, maxPieces, required, aiStarts) {
@@ -270,8 +286,6 @@ class HumanAi extends Ai {
 				game.board[y1][x1] = this.id;
 			}
 
-			for (let i = 0; i < possible.length; i++) if (loses.includes(i)) console.log(possible[i][0], "loses");
-
 			// otherwise play randomly, but don't do a losing action
 			let newP = [];
 			for (let i = 0; i < possible.length; i++) if (!loses.includes(i)) newP.push(possible[i]);
@@ -287,14 +301,14 @@ class HumanAi extends Ai {
 }
 
 class MinimaxAi extends Ai {
-	constructor(invert) {
+	constructor(invert, size) {
 		super();
-		this.deep = 6;
+		this.deep = size < 4 ? 6 : 4;
 		this.invert = invert;
 	}
 
 	score(win, deep) {
-		if (win == 0) return 0;
+		if (win <= 0) return 0;
 		return win == this.id ? 100+deep : -100-deep;
 	}
 
@@ -349,7 +363,10 @@ class MinimaxAi extends Ai {
 			});
 		}
 
-		let chosen = id == this.id ^ this.invert ? max(scores) : min(scores);
+		let m = min(scores), M = max(scores);
+		let chosen;
+		if (m[0] == M[0]) chosen = scores[parseInt(Math.random()*scores.length)];
+		else chosen = id == this.id ^ this.invert ? M : m;
 
 		// return score for recursion, or movement at the end
 		return chosen[deep+1 == this.deep ? 1 : 0];
@@ -391,16 +408,41 @@ function eq(l1, l2) {
 	return true; */
 }
 
-function apply() {
-	newGame(true);
+function getSettings() {
+	// update settings
+	let [s0, s1] = document.getElementsByTagName("select");
+	v0 = parseInt(s0.value);
+	v1 = parseInt(s1.value);
+	settings = [...gameValues[v0], v1];
+	if (v0 > 3 && v1 == 4) {
+		settings[3] = 3;
+		v1 = 3;
+		s1.value = 3;
+	}
+
+	// change text in html
+	let [t0, t1] = document.getElementsByClassName("comment");
+	t0.innerHTML = comments[0][v0];
+	t1.innerHTML = comments[1][v1];
 }
 
 function newGame(start) {
-	if (start) gamesPlayed = 0;
+	if (start) {
+		getSettings();
+		gamesPlayed = 0;
+	}
+
 	let player, ai;
 	player = new Player();
-	ai = new MinimaxAi(false);
-	game = new Game(player, ai, 3, 3, 3, gamesPlayed++ & 1);
+	switch (settings[3]) {
+		case 0: ai = new MinimaxAi(true, settings[0]); break;
+		case 1: ai = new HumanAi(false, false); break;
+		case 2: ai = new HumanAi(false, true); break;
+		case 3: ai = new HumanAi(true, true); break;
+		case 4: ai = new MinimaxAi(false, settings[0]);
+	}
+
+	game = new Game(player, ai, settings[0], settings[1], settings[2], gamesPlayed++ & 1);
 
 	if (interval != null) window.clearInterval(interval);
 	interval = window.setInterval(() => {game.update()}, 1000/fps);
@@ -414,6 +456,7 @@ function init() {
 
 	ctx = canvas.getContext("2d");
 
+	getSettings();
 	newGame(true);
 	window.addEventListener("click", evt => {game.players.forEach(p => p.click(evt))});
 }
