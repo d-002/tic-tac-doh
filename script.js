@@ -1,7 +1,7 @@
 let canvas, ctx, H;
 let game;
 let gamesPlayed = 0;
-let fps = 2;
+let fps = 60;
 let deep = 6; // /2 turns ahead
 let interval;
 
@@ -31,7 +31,7 @@ class Game {
 		// check if two positions can be points in a piece movement
 		let [y1, x1] = a;
 		let [y2, x2] = b;
-		return Math.abs(x1-x2) < 2 && Math.abs(y1-y2) < 2;
+		return (x1 != x2 || y1 != y2) && Math.abs(x1-x2) < 2 && Math.abs(y1-y2) < 2;
 	}
 
 	win(board) {
@@ -68,7 +68,8 @@ class Game {
 			}
 		}
 
-		return 0;
+		for (let x = 0; x < this.size; x++) for (let y = 0; y < this.size; y++) if (board[y][x] == 0) return 0;
+		return -1; // draw
 	}
 
 	update() {
@@ -107,7 +108,8 @@ class Game {
 		// pieces
 		ctx.strokeStyle = "rgba(1, 1, 1, 0)";
 		for (let x = 0; x < this.size; x++) for (let y = 0; y < this.size; y++) {
-			if ([x, y] == this.players[this.turnId-1].selection) {
+			let selection = this.players[this.turnId-1].selection;
+			if (selection != null && eq([x, y], selection)) {
 				// show selection
 				ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
 				ctx.fillRect(parseInt(x*step), parseInt(y*step), parseInt(step), parseInt(step));
@@ -144,8 +146,10 @@ class Player {
 		let [x, y] = this.pos;
 		this.pos = null;
 		if (game.turnCount < game.maxPieces) {
-			game.board[y][x] = this.id;
-			return true;
+			if (game.board[y][x] == 0) {
+				game.board[y][x] = this.id;
+				return true;
+			}
 		}
 		else {
 			if (game.board[y][x] == this.id) this.selection = [x, y]; // set selection
@@ -215,7 +219,7 @@ class HumanAi extends Ai {
 
 				// don't leave a position where the player could go and win
 				let couldLose = false;
-				for (let x = 0; x < game.size; x++) for (let y = 0; y < game.size; y++) if ([x, y] != [x1, y1] && game.board[y][x] == 3-this.id && game.areLinked([x1, y1], [x, y])) {
+				for (let x = 0; x < game.size; x++) for (let y = 0; y < game.size; y++) if (!eq([x, y], [x1, y1]) && game.board[y][x] == 3-this.id && game.areLinked([x1, y1], [x, y])) {
 					game.board[y1][x1] = 3-this.id;
 					game.board[y][x] = 0;
 					if (game.win(game.board)) couldLose = true;
@@ -248,7 +252,7 @@ class HumanAi extends Ai {
 					}
 					if (this.tryNoLose) {
 						// check if a player's piece could move here
-						for (let x = 0; x < game.size; x++) for (let y = 0; y < game.size; y++) if ([x, y] != [x2, y2] && game.board[y][x] == 3-this.id && game.areLinked([x2, y2], [x, y])) {
+						for (let x = 0; x < game.size; x++) for (let y = 0; y < game.size; y++) if (!eq([x, y], [x2, y2]) && game.board[y][x] == 3-this.id && game.areLinked([x2, y2], [x, y])) {
 							game.board[y][x] = 0;
 							game.board[y2][x2] = 3-this.id;
 							if (game.win(game.board)) {
@@ -271,7 +275,6 @@ class HumanAi extends Ai {
 			// otherwise play randomly, but don't do a losing action
 			let newP = [];
 			for (let i = 0; i < possible.length; i++) if (!loses.includes(i)) newP.push(possible[i]);
-			if (newP.length == 0) console.log("all losses");
 			if (newP.length == 0) newP = possible; // every action is a loss, so pick a random one
 			let [pos, linked] = newP[parseInt(Math.random()*newP.length)];
 			let [x1, y1] = pos;
@@ -286,7 +289,80 @@ class HumanAi extends Ai {
 class MinimaxAi extends Ai {
 	constructor(invert) {
 		super();
+		this.deep = 6;
 		this.invert = invert;
+	}
+
+	score(win, deep) {
+		if (win == 0) return 0;
+		return win == this.id ? 100+deep : -100-deep;
+	}
+
+	minimax(board, deep, id, turn) {
+		// stop when game ended or too deep
+		let w = game.win(board);
+		if (w != 0 || deep == 0) return this.score(w, deep);
+
+		// get simulated turn count
+		if (deep-- < this.deep && id == 1) turn++;
+
+		let scores = [];
+		if (turn < game.maxPieces) { // first phase
+			// get possible placements
+			let empty = [];
+			for (let x = 0; x < game.size; x++) for (let y = 0; y < game.size; y++) if (board[y][x] == 0) empty.push([x, y]);
+
+			empty.forEach(pos => {
+				let board2 = [];
+				for (let y1 = 0; y1 < game.size; y1++) {
+					let line = [];
+					for (let x1 = 0; x1 < game.size; x1++) line.push(eq(pos, [x1, y1]) ? id : board[y1][x1]);
+					board2.push(line);
+				}
+				scores.push([this.minimax(board2, deep, 3-id, turn), pos]);
+			});
+		}
+		else { // second phase
+			// get possible destinations from owned pawns
+			let mine = [];
+			for (let y = 0; y < game.size; y++) for (let x = 0; x < game.size; x++) if (board[y][x] == id) mine.push([x, y]);
+
+			let possible = [];
+			mine.forEach(pos => {
+				let linked = [];
+				for (let x2 = 0; x2 < game.size; x2++) for (let y2 = 0; y2 < game.size; y2++) if (board[y2][x2] == 0 && game.areLinked(pos, [x2, y2])) {
+					linked.push([x2, y2]);
+				}
+				if (linked.length) possible.push([pos, linked]);
+			});
+
+			possible.forEach(([a, linked]) => {
+				linked.forEach(b => {
+					let board2 = [];
+					for (let y = 0; y < game.size; y++) {
+						let line = [];
+						for (let x = 0; x < game.size; x++) line.push(eq([x, y], a) ? 0 : eq([x, y], b) ? id : board[y][x]);
+						board2.push(line);
+					}
+					scores.push([this.minimax(board2, deep, 3-id, turn), [a, b]]);
+				});
+			});
+		}
+
+		let chosen = id == this.id ^ this.invert ? max(scores) : min(scores);
+
+		// return score for recursion, or movement at the end
+		return chosen[deep+1 == this.deep ? 1 : 0];
+	}
+
+	play() {
+		let [a, b] = this.minimax(copyBoard(game.board), this.deep, this.id, game.turnCount);
+		if (game.turnCount < game.maxPieces) game.board[b][a] = this.id;
+		else {
+			game.board[a[1]][a[0]] = 0;
+			game.board[b[1]][b[0]] = this.id;
+		}
+		return true;
 	}
 }
 
@@ -294,6 +370,25 @@ function copyBoard(board) {
 	let newB = [];
 	board.forEach(line => {newB.push([...line])});
 	return newB;
+}
+
+function max(scores) {
+	let i = 0;
+	for (let j = 1; j < scores.length; j++) if (scores[j] > scores[i]) i = j;
+	return scores[i];
+}
+
+function min(scores) {
+	let i = 0;
+	for (let j = 1; j < scores.length; j++) if (scores[j] < scores[i]) i = j;
+	return scores[i];
+}
+
+function eq(l1, l2) {
+	return l1[0] == l2[0] && l1[1] == l2[1];
+	/* if (l1.length != l2.length) return false;
+	for (let i = 0; i < l1.length; i++) if (l1[i] != l2[i]) return false;
+	return true; */
 }
 
 function apply() {
@@ -304,7 +399,7 @@ function newGame(start) {
 	if (start) gamesPlayed = 0;
 	let player, ai;
 	player = new Player();
-	ai = new HumanAi(true, true);
+	ai = new MinimaxAi(false);
 	game = new Game(player, ai, 3, 3, 3, gamesPlayed++ & 1);
 
 	if (interval != null) window.clearInterval(interval);
