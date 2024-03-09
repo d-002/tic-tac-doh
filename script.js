@@ -1,7 +1,7 @@
 let canvas, ctx, H;
 let game;
 let gamesPlayed = 0;
-let fps = 10;
+let fps = 60;
 let deep = 6; // /2 turns ahead
 let interval;
 
@@ -303,13 +303,13 @@ class HumanAi extends Ai {
 class MinimaxAi extends Ai {
 	constructor(invert, size) {
 		super();
-		this.deep = size < 4 ? 8 : 4;
+		this.deep = size < 4 ? 6 : 4;
 		this.invert = invert;
 	}
 
 	score(win, deep) {
 		if (win < 1) return 0;
-		return win == this.id ? 20-deep : deep-20;
+		return win == this.id ? 20+deep : deep-20;
 	}
 
 	minimax(board, deep, id, turn) {
@@ -377,9 +377,25 @@ class MinimaxAi extends Ai {
 		}
 
 		let chosen = (id == this.id) ^ this.invert ? max(scores) : min(scores);
+		if (chosen == null) return [0, 0, [[0, 0], [0, 0]]]; // could happen if it encloses itself, but realistically never going to make that move
 
 		// set winning ratio to average when selecting player moves, or best for AI moves
-		let ratio = id == this.id ? chosen[1] : total == 0 ? 0 : winning/total;
+		let ratio, winsNextRound;
+		if (id == this.id) ratio = chosen[1];
+		else {
+			if (total == 0) ratio = 0;
+			else {
+				let prev = winning/total; // in case all scenarios are !tie (mainly for recursion end)
+				winsNextRound = this.score(1, deep-2);
+				scores.forEach(([score, ratio, _]) => {
+					if (score == winsNextRound) {
+						winning -= ratio;
+						total--;
+					}
+				});
+				ratio = total == 0 ? prev : winning/total;
+			}
+		}
 
 		// return movement at the end, or score and ratio for recursive calls
 		if (deep == this.deep) return chosen[2];
