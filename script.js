@@ -303,25 +303,31 @@ class HumanAi extends Ai {
 class MinimaxAi extends Ai {
 	constructor(invert, size) {
 		super();
-		this.deep = size < 4 ? 6 : 4;
+		this.deep = size < 4 ? 8 : 4;
 		this.invert = invert;
 	}
 
 	score(win, deep) {
 		if (win < 1) return 0;
-		return win == this.id ? 20+deep : -20-deep;
+		return win == this.id ? 20-deep : deep-20;
 	}
 
 	minimax(board, deep, id, turn) {
 		// stop when game ended or too deep
 		let w = game.win(board);
-		if (w != 0 || deep == 0) return this.score(w, deep);
+		if (w != 0 || deep == 0) {
+			let score = this.score(w, deep);
+			return [score, score > 0 ? 1 : score < 0 ? -1 : 0];
+		}
 
 		// get simulated turn count
 		if (deep < this.deep && id == 1) turn++;
 
 		let scores = [];
-		if (turn < game.maxPieces) { // first phase
+		let winning = 0; // outcomes where the AI wins - outcomes where it loses
+		let total = 0;
+		// first phase: place pieces
+		if (turn < game.maxPieces) {
 			// get possible placements
 			let empty = [];
 			for (let x = 0; x < game.size; x++) for (let y = 0; y < game.size; y++) if (board[y][x] == 0) empty.push([x, y]);
@@ -333,10 +339,14 @@ class MinimaxAi extends Ai {
 					for (let x1 = 0; x1 < game.size; x1++) line.push(eq(pos, [x1, y1]) ? id : board[y1][x1]);
 					board2.push(line);
 				}
-				scores.push([this.minimax(board2, deep-1, 3-id, turn), pos]);
+				let [score, ratio] = this.minimax(board2, deep-1, 3-id, turn);
+				scores.push([score, ratio, pos]);
+				winning += ratio;
+				total++;
 			});
 		}
-		else { // second phase
+		// second phase: move pieces around
+		else {
 			// get possible destinations from owned pawns
 			let mine = [];
 			for (let y = 0; y < game.size; y++) for (let x = 0; x < game.size; x++) if (board[y][x] == id) mine.push([x, y]);
@@ -358,24 +368,25 @@ class MinimaxAi extends Ai {
 						for (let x = 0; x < game.size; x++) line.push(eq([x, y], a) ? 0 : eq([x, y], b) ? id : board[y][x]);
 						board2.push(line);
 					}
-					scores.push([this.minimax(board2, deep-1, 3-id, turn), [a, b]]);
+					let [score, ratio] = this.minimax(board2, deep-1, 3-id, turn);
+					scores.push([score, ratio, [a, b]]);
+					winning += ratio;
+					total++;
 				});
 			});
 		}
 
-		// return score for recursion, or movement at the end
 		let chosen = (id == this.id) ^ this.invert ? max(scores) : min(scores);
-		return chosen[deep == this.deep ? 1 : 0];
+
+		// set winning ratio to average when selecting player moves, or best for AI moves
+		let ratio = id == this.id ? chosen[1] : total == 0 ? 0 : winning/total;
+
+		// return movement at the end, or score and ratio for recursive calls
+		if (deep == this.deep) return chosen[2];
+		return [chosen[0], ratio];
 	}
 
 	play() {
-		if (game.turnCount == 0 && game.players[0] == this && game.size == 3 && game.maxPieces > 3) {
-			// hard-code the first move in classic 3x3, because all the extreme outcomes are score 0
-			let i = parseInt(Math.random()*4);
-			game.board[(i&1)<<1][i>>1<<1] = this.id;
-			return true;
-		}
-
 		let newB = [];
 		game.board.forEach(line => {newB.push([...line])});
 		let [a, b] = this.minimax(newB, this.deep, this.id, game.turnCount);
@@ -392,8 +403,8 @@ function max(scores) {
 	let best = [0];
 	for (let j = 1; j < scores.length; j++) {
 		let a = scores[j], b = scores[best[0]];
-		if (a > b) best = [j];
-		else if (a == b) best.push(j);
+		if (a[0] > b[0] || (a[0] == b[0] && a[1] > b[1])) best = [j];
+		else if (eq(a, b)) best.push(j); // eq only tests for the first 2 elements
 	}
 	return scores[best[parseInt(Math.random()*best.length)]];
 }
@@ -402,8 +413,8 @@ function min(scores) {
 	let best = [0];
 	for (let j = 1; j < scores.length; j++) {
 		let a = scores[j], b = scores[best[0]];
-		if (a < b) best = [j];
-		else if (a == b) best.push(j);
+		if (a[0] < b[0] || (a[0] == b[0] && a[1] < b[1])) best = [j];
+		else if (eq(a, b)) best.push(j);
 	}
 	return scores[best[parseInt(Math.random()*best.length)]];
 }
