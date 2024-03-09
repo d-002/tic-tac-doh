@@ -318,7 +318,7 @@ class MinimaxAi extends Ai {
 		if (w != 0 || deep == 0) return this.score(w, deep);
 
 		// get simulated turn count
-		if (deep-- < this.deep && id == 1) turn++;
+		if (deep < this.deep && id == 1) turn++;
 
 		let scores = [];
 		if (turn < game.maxPieces) { // first phase
@@ -333,7 +333,7 @@ class MinimaxAi extends Ai {
 					for (let x1 = 0; x1 < game.size; x1++) line.push(eq(pos, [x1, y1]) ? id : board[y1][x1]);
 					board2.push(line);
 				}
-				scores.push([this.minimax(board2, deep, 3-id, turn), pos]);
+				scores.push([this.minimax(board2, deep-1, 3-id, turn), pos]);
 			});
 		}
 		else { // second phase
@@ -358,21 +358,24 @@ class MinimaxAi extends Ai {
 						for (let x = 0; x < game.size; x++) line.push(eq([x, y], a) ? 0 : eq([x, y], b) ? id : board[y][x]);
 						board2.push(line);
 					}
-					scores.push([this.minimax(board2, deep, 3-id, turn), [a, b]]);
+					scores.push([this.minimax(board2, deep-1, 3-id, turn), [a, b]]);
 				});
 			});
 		}
 
-		let m = min(scores), M = max(scores);
-		let chosen;
-		if (m[0] == M[0]) chosen = scores[parseInt(Math.random()*scores.length)];
-		else chosen = (id == this.id) ^ this.invert ? M : m;
-
 		// return score for recursion, or movement at the end
-		return chosen[deep+1 == this.deep ? 1 : 0];
+		let chosen = (id == this.id) ^ this.invert ? max(scores) : min(scores);
+		return chosen[deep == this.deep ? 1 : 0];
 	}
 
 	play() {
+		if (game.turnCount == 0 && game.players[0] == this && game.size == 3 && game.maxPieces > 3) {
+			// hard-code the first move in classic 3x3, because all the extreme outcomes are score 0
+			let i = parseInt(Math.random()*4);
+			game.board[(i&1)<<1][i>>1<<1] = this.id;
+			return true;
+		}
+
 		let newB = [];
 		game.board.forEach(line => {newB.push([...line])});
 		let [a, b] = this.minimax(newB, this.deep, this.id, game.turnCount);
@@ -386,15 +389,23 @@ class MinimaxAi extends Ai {
 }
 
 function max(scores) {
-	let i = 0;
-	for (let j = 1; j < scores.length; j++) if (scores[j] > scores[i]) i = j;
-	return scores[i];
+	let best = [0];
+	for (let j = 1; j < scores.length; j++) {
+		let a = scores[j], b = scores[best[0]];
+		if (a > b) best = [j];
+		else if (a == b) best.push(j);
+	}
+	return scores[best[parseInt(Math.random()*best.length)]];
 }
 
 function min(scores) {
-	let i = 0;
-	for (let j = 1; j < scores.length; j++) if (scores[j] < scores[i]) i = j;
-	return scores[i];
+	let best = [0];
+	for (let j = 1; j < scores.length; j++) {
+		let a = scores[j], b = scores[best[0]];
+		if (a < b) best = [j];
+		else if (a == b) best.push(j);
+	}
+	return scores[best[parseInt(Math.random()*best.length)]];
 }
 
 function eq(l1, l2) {
