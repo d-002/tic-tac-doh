@@ -149,7 +149,7 @@ class Game {
 
 			// set pos and filters depending on any animation running
 			let i;
-			let X = x+0.5, Y = y+0.5, alpha = 1, size = step;
+			let X = x+0.5, Y = y+0.5, alpha = 1, size = step/2.5;
 			for (i = this.animations.length-1; i >= -1; i--) if (i == -1 || eq(this.animations[i][3], [x, y])) break;
 			if (i != -1) {
 				let a = this.animations[i];
@@ -182,15 +182,21 @@ class Game {
 			let selection = this.players[this.turnId-1].selection;
 			if (selection != null && eq([x, y], selection)) {
 				// show selection
-				ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
-				ctx.fillRect(parseInt(x*step), parseInt(y*step), parseInt(step), parseInt(step));
+				let t = (Date.now()-this.players[this.turnId-1].selectionStart)/300
+				let cos = Math.cos(t), sin = Math.sin(t);
+				ctx.fillStyle = "rgba(255, 255, 255, " + (0.1 - cos*0.05) + ")";
+				ctx.beginPath();
+				ctx.arc(parseInt(X*step), parseInt(Y*step), size * (1.1 + cos*0.05), 0, 2*Math.PI);
+				ctx.fill();
+				alpha *= 0.9 + cos*0.1;
+				size *= 0.95 - sin*0.05;
 			}
 
 			// draw piece
 			ctx.fillStyle = images[this.players[type].image];
 			ctx.globalAlpha = alpha;
 			ctx.beginPath();
-			ctx.arc(parseInt(X*step), parseInt(Y*step), size/2.5, 0, 2*Math.PI);
+			ctx.arc(parseInt(X*step), parseInt(Y*step), size, 0, 2*Math.PI);
 			ctx.fill();
 			ctx.globalAlpha = 1;
 		}
@@ -201,6 +207,8 @@ class Player {
 	constructor() {
 		this.image = 0;
 		this.pos = null; // will be non-null when async event clicked
+		this.selection = null;
+		this.selectionStart = 0;
 	}
 
 	click(evt) {
@@ -225,7 +233,10 @@ class Player {
 			}
 		}
 		else {
-			if (game.board[y][x] == this.id) this.selection = [x, y]; // set selection
+			if (game.board[y][x] == this.id) { // set selection
+				this.selection = [x, y];
+				this.selectionStart = Date.now();
+			}
 			else if (game.board[y][x] == 0 && this.selection != null && game.areLinked(this.selection, [x, y])) {
 				game.board[this.selection[1]][this.selection[0]] = 0;
 				game.board[y][x] = this.id;
@@ -331,7 +342,10 @@ class HumanAi extends Ai {
 					let [x2, y2] = linked[j];
 					if (this.tryWin) {
 						game.board[y2][x2] = this.id;
-						if (game.win(game.board) != 0) return true;
+						if (game.win(game.board) != 0) {
+							game.animations.push(["move", Date.now(), 0.3, [x2, y2], [x1, y1]]);
+							return true;
+						}
 					}
 					if (this.tryNoLose) {
 						// check if a player's piece could move here
@@ -342,6 +356,7 @@ class HumanAi extends Ai {
 								game.board[y][x] = 3-this.id;
 								game.board[y2][x2] = this.id;
 								game.board[y1][x1] = 0;
+								game.animations.push(["move", Date.now(), 0.3, [x2, y2], [x1, y1]]);
 								return true;
 							}
 							game.board[y][x] = 3-this.id;
@@ -362,7 +377,7 @@ class HumanAi extends Ai {
 			let [x2, y2] = linked[parseInt(Math.random()*linked.length)];
 			game.board[y1][x1] = 0;
 			game.board[y2][x2] = this.id;
-			game.animations.push(["move", Date.now(), 0.3, [y2, x2], [y1, x1]]);
+			game.animations.push(["move", Date.now(), 0.3, [x2, y2], [x1, y1]]);
 		}
 		return true;
 	}
@@ -566,5 +581,5 @@ function init() {
 
 	getSettings();
 	newGame(true);
-	window.addEventListener("click", evt => {game.players.forEach(p => p.click(evt))});
+	window.addEventListener("mousedown", evt => {game.players.forEach(p => p.click(evt))});
 }
