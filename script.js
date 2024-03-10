@@ -96,26 +96,27 @@ class Game {
 		}
 
 		for (let x = 0; x < this.size; x++) for (let y = 0; y < this.size; y++) if (board[y][x] == 0) return 0;
-		return -1; // draw
+
+		// draw
+		for (let x = 0; x < this.size; x++) for (let y = 0; y < this.size; y++) this.animations.push(["fadeout", Date.now(), 1, [x, y]]);
+		return -1;
 	}
 
 	update() {
-		if (this.over) {
-			// wait for win animation to end then reset
-			if (this.animations.length == 0) newGame();
-		}
+		if (this.animations.length != 0) return this.draw(); // wait for animations to stop
+		if (this.over) newGame();
 		else {
-			// update current player, except when an animation is playing
-			if (this.animations.length == 0 && this.players[this.turnId-1].play()) {
-				this.turnId = 3-this.turnId;
-				if (this.turnId == 1) this.turnCount++;
-			}
-
 			// check win and start animation
 			let w = this.win(this.board, true);
 			if (w != 0) {
 				this.over = true;
 				console.log(w);
+			}
+
+			// update current player, except when someone won
+			else if (this.players[this.turnId-1].play()) {
+				this.turnId = 3-this.turnId;
+				if (this.turnId == 1) this.turnCount++;
 			}
 		}
 
@@ -162,7 +163,19 @@ class Game {
 						X = a[4][0]+(a[3][0]-a[4][0])*t+0.5;
 						Y = a[4][1]+(a[3][1]-a[4][1])*t+0.5;
 				}
-				else this.animations.pop(i);
+				else {
+					this.animations.pop(i);
+					if (a[0] == "win" || a[0] == "fadeout") { // game stopped, don't update other cells after animation finished
+						this.board = [];
+						for (let y = 0; y < this.size; y++) {
+							let line = [];
+							for (let x = 0; x < this.size; x++) line.push(0);
+							this.board.push(line);
+						}
+						this.animations = [];
+						return;
+					}
+				}
 			}
 
 			// show player selection
@@ -259,6 +272,10 @@ class HumanAi extends Ai {
 						return true;
 					}
 				}
+				game.board[y][x] = 0;
+			}
+			for (let i = 0; i < empty.length; i++) {
+				let [x, y] = empty[i];
 				if (this.tryNoLose) {
 					game.board[y][x] = 3-this.id;
 					if (game.win(game.board) != 0) {
@@ -457,10 +474,14 @@ class MinimaxAi extends Ai {
 		let newB = [];
 		game.board.forEach(line => {newB.push([...line])});
 		let [a, b] = this.minimax(newB, this.deep, this.id, game.turnCount);
-		if (game.turnCount < game.maxPieces) game.board[b][a] = this.id;
+		if (game.turnCount < game.maxPieces) {
+			game.board[b][a] = this.id;
+			game.animations.push(["spawn", Date.now(), 0.2, [a, b]]);
+		}
 		else {
 			game.board[a[1]][a[0]] = 0;
 			game.board[b[1]][b[0]] = this.id;
+			game.animations.push(["move", Date.now(), 0.3, b, a]);
 		}
 		return true;
 	}
