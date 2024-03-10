@@ -4,6 +4,7 @@ let gamesPlayed = 0;
 let fps = 60;
 let deep = 6; // /2 turns ahead
 let interval;
+let images;
 
 let settings = [NaN, NaN, NaN, NaN]; // size, pieces, required, AI level
 let gameValues = [[3, 5, 3], [3, 3, 3], [4, 8, 4], [4, 4, 4], [8, 32, 4], [8, 6, 4]];
@@ -41,6 +42,9 @@ class Game {
 
 		this.turnId = 1;
 		this.turnCount = 0;
+
+		this.animations = []; // type, start time, duration, position[, starting position]
+		this.over = false;
 	}
 
 	areLinked(a, b) {
@@ -50,37 +54,44 @@ class Game {
 		return (x1 != x2 || y1 != y2) && Math.abs(x1-x2) < 2 && Math.abs(y1-y2) < 2;
 	}
 
-	win(board) {
+	win(board, allowAnimation=false) {
 		// check horizontal and vertical
 		for (let i = 0; i < this.size; i++) {
 			let prev = [-1, -1];
 			let count = [0, 0];
-			for (let j = 0; j < this.size; j++)
-				for (let k = 0; k < 2; k++) {
-					let v = k == 0 ? board[i][j] : board[j][i];
-					if (v == prev[k]) count[k]++;
-					else count[k] = 1;
-					prev[k] = v;
-					if (v != 0 && count[k] == this.required) return v;
+			for (let j = 0; j < this.size; j++) for (let k = 0; k < 2; k++) {
+				let v = k == 0 ? board[i][j] : board[j][i];
+				if (v == prev[k]) count[k]++;
+				else count[k] = 1;
+				prev[k] = v;
+				if (v != 0 && count[k] == this.required) {
+					if (allowAnimation) {
+						for (let x = 0; x < this.size; x++) for (let y = 0; y < this.size; y++) {
+							if ((k == 0 && j-this.required < x && x <= j && i == y) || (k == 1 && i == x && j-this.required < y && y <= j)) {
+								this.animations.push(["win", Date.now(), 1, [x, y]]);
+							}
+							else this.animations.push(["fadeout", Date.now(), 1, [x, y]]);
+						}
+					}
+					return v;
 				}
+			}
 		}
 
 		// check diagonals
 		for (let i = 0; i <= this.size-this.required; i++) {
 			let prev = [-1, -1, -1, -1];
 			let count = [0, 0, 0, 0];
-			for (let j = 0; j < this.size-i; j++) {
-				for (let k = 0; k < 4; k++) {
-					let x = (k & 1) ? j : i+j;
-					let y = (k & 1) ? i+j : j;
-					x = k < 2 ? x : this.size-x-1;
+			for (let j = 0; j < this.size-i; j++) for (let k = 0; k < 4; k++) {
+				let x = (k & 1) ? j : i+j;
+				let y = (k & 1) ? i+j : j;
+				x = k < 2 ? x : this.size-x-1;
 
-					let v = board[y][x];
-					if (v == prev[k]) count[k]++;
-					else count[k] = 1;
-					prev[k] = v;
-					if (v != 0 && count[k] == this.required) return v;
-				}
+				let v = board[y][x];
+				if (v == prev[k]) count[k]++;
+				else count[k] = 1;
+				prev[k] = v;
+				if (v != 0 && count[k] == this.required) return v;
 			}
 		}
 
@@ -89,15 +100,23 @@ class Game {
 	}
 
 	update() {
-		if (this.players[this.turnId-1].play()) {
-			this.turnId = 3-this.turnId;
-			if (this.turnId == 1) this.turnCount++;
+		if (this.over) {
+			// wait for win animation to end then reset
+			if (this.animations.length == 0) newGame();
 		}
+		else {
+			// update current player, except when an animation is playing
+			if (this.animations.length == 0 && this.players[this.turnId-1].play()) {
+				this.turnId = 3-this.turnId;
+				if (this.turnId == 1) this.turnCount++;
+			}
 
-		let w = this.win(this.board);
-		if (w != 0) {
-			console.log(w);
-			newGame();
+			// check win and start animation
+			let w = this.win(this.board, true);
+			if (w != 0) {
+				this.over = true;
+				console.log(w);
+			}
 		}
 
 		this.draw();
@@ -124,6 +143,29 @@ class Game {
 		// pieces
 		ctx.strokeStyle = "rgba(1, 1, 1, 0)";
 		for (let x = 0; x < this.size; x++) for (let y = 0; y < this.size; y++) {
+			let type = this.board[y][x]-1;
+			if (type == -1) continue;
+
+			// set pos and filters depending on any animation running
+			let i;
+			let X = x+0.5, Y = y+0.5, alpha = 1, size = step;
+			for (i = this.animations.length-1; i >= -1; i--) if (i == -1 || eq(this.animations[i][3], [x, y])) break;
+			if (i != -1) {
+				let a = this.animations[i];
+				let t = (Date.now()-a[1]) / a[2] / 1000;
+				if (t < 1) switch (a[0]) {
+					case "spawn": alpha = t, size *= 1.5-t*0.5; break;
+					case "fadeout": alpha = 1-t, size *= 1 - t*0.5; break;
+					case "win": size *= t < 0.25 ? Math.sin(t*8*Math.PI)*0.1 + 1 : t < 0.5 ? 1 : 2 - 2*t; break;
+					case "move":
+						t = (3-2*t)*t*t;
+						X = a[4][0]+(a[3][0]-a[4][0])*t+0.5;
+						Y = a[4][1]+(a[3][1]-a[4][1])*t+0.5;
+				}
+				else this.animations.pop(i);
+			}
+
+			// show player selection
 			let selection = this.players[this.turnId-1].selection;
 			if (selection != null && eq([x, y], selection)) {
 				// show selection
@@ -131,12 +173,13 @@ class Game {
 				ctx.fillRect(parseInt(x*step), parseInt(y*step), parseInt(step), parseInt(step));
 			}
 
-			let i = this.board[y][x]-1;
-			if (i == -1) continue;
-			ctx.fillStyle = ["#00f", "#f00"][this.players[i].image];
+			// draw piece
+			ctx.fillStyle = images[this.players[type].image];
+			ctx.globalAlpha = alpha;
 			ctx.beginPath();
-			ctx.arc(parseInt((x+0.5) * step), parseInt((y+0.5) * step), step/2.5, 0, 2*Math.PI);
+			ctx.arc(parseInt(X*step), parseInt(Y*step), size/2.5, 0, 2*Math.PI);
 			ctx.fill();
+			ctx.globalAlpha = 1;
 		}
 	}
 }
@@ -164,6 +207,7 @@ class Player {
 		if (game.turnCount < game.maxPieces) {
 			if (game.board[y][x] == 0) {
 				game.board[y][x] = this.id;
+				game.animations.push(["spawn", Date.now(), 0.2, [x, y]]);
 				return true;
 			}
 		}
@@ -172,6 +216,7 @@ class Player {
 			else if (game.board[y][x] == 0 && this.selection != null && game.areLinked(this.selection, [x, y])) {
 				game.board[this.selection[1]][this.selection[0]] = 0;
 				game.board[y][x] = this.id;
+				game.animations.push(["move", Date.now(), 0.3, [x, y], this.selection]);
 				this.selection = null;
 				return true;
 			}
@@ -209,12 +254,16 @@ class HumanAi extends Ai {
 				let [x, y] = empty[i];
 				if (this.tryWin) {
 					game.board[y][x] = this.id;
-					if (game.win(game.board) != 0) return true; // try to win
+					if (game.win(game.board) != 0) { // try to win
+						game.animations.push(["spawn", Date.now(), 0.2, [x, y]]);
+						return true;
+					}
 				}
 				if (this.tryNoLose) {
 					game.board[y][x] = 3-this.id;
 					if (game.win(game.board) != 0) {
 						game.board[y][x] = this.id;
+						game.animations.push(["spawn", Date.now(), 0.2, [x, y]]);
 						return true; // try to cancel
 					}
 				}
@@ -223,6 +272,7 @@ class HumanAi extends Ai {
 			// otherwise play randomly
 			let [x, y] = empty[parseInt(Math.random()*empty.length)];
 			game.board[y][x] = this.id;
+			game.animations.push(["spawn", Date.now(), 0.2, [x, y]]);
 		}
 		else {
 			// get possible destinations from owned pieces
@@ -295,6 +345,7 @@ class HumanAi extends Ai {
 			let [x2, y2] = linked[parseInt(Math.random()*linked.length)];
 			game.board[y1][x1] = 0;
 			game.board[y2][x2] = this.id;
+			game.animations.push(["move", Date.now(), 0.3, [y2, x2], [y1, x1]]);
 		}
 		return true;
 	}
@@ -489,6 +540,8 @@ function init() {
 	canvas.setAttribute("height", H);
 
 	ctx = canvas.getContext("2d");
+
+	images = ["#00f", "#f00"];
 
 	getSettings();
 	newGame(true);
