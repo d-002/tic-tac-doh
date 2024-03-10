@@ -1,25 +1,23 @@
 let canvas, ctx, H;
-let game;
+let game, interval;
 let gamesPlayed = 0;
 let fps = 60;
-let deep = 6; // /2 turns ahead
-let interval;
-let images;
+let images, div;
 
 let settings = [NaN, NaN, NaN, NaN]; // size, pieces, required, AI level
 let gameValues = [[3, 5, 3], [3, 3, 3], [4, 8, 4], [4, 4, 4], [8, 32, 4], [8, 6, 4]];
 let comments = [
-	["Classic Tic tac toe game, 3x3 grid. Place pieces and line 3 in a row (horizontally, vertically or digonally) to win, while blocking your opponent!",
-	"First 3 rounds you place pieces, then you will have to move your pieces around to line them up. To move a piece, first click on it to select it, then click on a free, adjacent cell (to the right, left, up, down, or diagonally). This way there's no way you tie, and it's much more challenging and fun!",
+	["Classic Tic tac toe game, 3x3 grid. Place pieces and line 3 in a row to win!",
+	"First 3 rounds you place pieces, then you will have to move your pieces around to win: click once to select, and again to drop on a free, adjacent cell (to the side or diagonally).",
 	"Classic Tic tac toe, but you need to line 4 in a row in this 4x4 grid!",
-	"Line 4 in a row in this 4x4 grid, but you can also move pieces! (refer to <strong>\"You can move pieces around\"</strong> for more information)",
-	"GIANT 8x8 GRID!!! You only need to line 4 pieces in a row, so you're free to go anywhere! <span class=\"error\">Lisa is not (yet) playable in this gamemode!</span>",
-	"Only for the grandmasters among you, since this 8x8 grid requires you to move your pieces around and line 4 in a row! You get 6 pieces. <span class=\"error\">Lisa is not (yet) playable in this gamemode!</span>"],
-	["You are playing against drunk Homer Simpson. He is so drunk he confuses his pieces and yours, so there's almost <strong>no way</strong> he wins!",
-	"You are playing against Homer Simpson. He doesn't really know how to play, and places kinda randomly because he's too busy eating doughnuts at the same time.",
-	"You are playing against Mr. Burns. He doesn't care about winning, he doesn't care about playing or enjoying the game, all he wants is to prevent you from winning. Try to outsmart him!",
-	"You are playing against Bart Simpson. He plays like an average human being, trying to win and to prevent you from doing the same. You can do this!",
-	"You are playing against Lisa Simpson. She has studied every possible strategy, and will never lose! She plans multiple turns ahead, and knows everything you are planning... At least try to tie!"]
+	"Line 4 in a row in this 4x4 grid, but you can also move pieces! (refer to <strong>\"You can move pieces around\"</strong> gamemode for more information)",
+	"GIANT 8x8 GRID!!! You only need to line 4 pieces in a row, so you're free to go anywhere! <span class=\"error\">Lisa and Drunk Homer are not (yet) playable in this gamemode!</span>",
+	"This 8x8 grid requires you to move your pieces around and line 4 in a row! You only get 6 pieces. <span class=\"error\">Lisa and Drunk Homer are not (yet) playable in this gamemode!</span>"],
+	["Drunk Homer Simpson is so drunk he confuses his pieces and yours, so there's almost <strong>no way</strong> he wins!",
+	"Homer Simpson doesn't really know how to play, and places kinda randomly.",
+	"Mr. Burns doesn't care about winning or enjoying the game, all he wants is to prevent you from winning. Try to outsmart him!",
+	"Bart Simpson plays like an average human being, trying to win and prevent you from doing the same.",
+	"Lisa Simpson has studied every possible strategy, plans multiple turns ahead... At least try to tie!"]
 ];
 
 class Game {
@@ -65,13 +63,11 @@ class Game {
 				else count[k] = 1;
 				prev[k] = v;
 				if (v != 0 && count[k] == this.required) {
-					if (allowAnimation) {
-						for (let x = 0; x < this.size; x++) for (let y = 0; y < this.size; y++) {
-							if ((k == 0 && j-this.required < x && x <= j && i == y) || (k == 1 && i == x && j-this.required < y && y <= j)) {
-								this.animations.push(["win", Date.now(), 1, [x, y]]);
+					if (allowAnimation) for (let x = 0; x < this.size; x++) for (let y = 0; y < this.size; y++) {
+						if ((k == 0 && j-this.required < x && x <= j && i == y) || (k == 1 && i == x && j-this.required < y && y <= j)) {
+							this.animations.push(["win", Date.now(), 1, [x, y]]);
 							}
-							else this.animations.push(["fadeout", Date.now(), 1, [x, y]]);
-						}
+						else this.animations.push(["fadeout", Date.now(), 1, [x, y]]);
 					}
 					return v;
 				}
@@ -91,14 +87,20 @@ class Game {
 				if (v == prev[k]) count[k]++;
 				else count[k] = 1;
 				prev[k] = v;
-				if (v != 0 && count[k] == this.required) return v;
+				if (v != 0 && count[k] == this.required) {
+					if (allowAnimation) for (let x1 = 0; x1 < this.size; x1++) for (let y1 = 0; y1 < this.size; y1++) {
+						if ((k < 2 ? x-x1 : x1-x) == y-y1 && y-this.required < y1 && y1 <= y) this.animations.push(["win", Date.now(), 1, [x1, y1]]);
+						else this.animations.push(["fadeout",Date.now(), 1, [x1, y1]]);
+					}
+					return v;
+				}
 			}
 		}
 
 		for (let x = 0; x < this.size; x++) for (let y = 0; y < this.size; y++) if (board[y][x] == 0) return 0;
 
 		// draw
-		for (let x = 0; x < this.size; x++) for (let y = 0; y < this.size; y++) this.animations.push(["fadeout", Date.now(), 1, [x, y]]);
+		if (allowAnimation) for (let x = 0; x < this.size; x++) for (let y = 0; y < this.size; y++) this.animations.push(["fadeout", Date.now(), 1, [x, y]]);
 		return -1;
 	}
 
@@ -128,7 +130,7 @@ class Game {
 		let step = H/this.size;
 
 		// lines between squares
-		ctx.strokeStyle = "#aaa";
+		ctx.strokeStyle = "#9c5b01";
 		ctx.lineWidth = 4;
 		let offset = Math.max(29 - 3*this.size, 2);
 		for (let i = 1; i < this.size; i++) {
@@ -184,20 +186,17 @@ class Game {
 				// show selection
 				let t = (Date.now()-this.players[this.turnId-1].selectionStart)/300
 				let cos = Math.cos(t), sin = Math.sin(t);
-				ctx.fillStyle = "rgba(255, 255, 255, " + (0.1 - cos*0.05) + ")";
+				ctx.fillStyle = "rgba(156, 91, 1, " + (0.3 - cos*0.1) + ")";
 				ctx.beginPath();
-				ctx.arc(parseInt(X*step), parseInt(Y*step), size * (1.1 + cos*0.05), 0, 2*Math.PI);
+				ctx.arc(X*step, Y*step, size * (1.1 + cos*0.05), 0, 2*Math.PI);
 				ctx.fill();
 				alpha *= 0.9 + cos*0.1;
 				size *= 0.95 - sin*0.05;
 			}
 
 			// draw piece
-			ctx.fillStyle = images[this.players[type].image];
 			ctx.globalAlpha = alpha;
-			ctx.beginPath();
-			ctx.arc(parseInt(X*step), parseInt(Y*step), size, 0, 2*Math.PI);
-			ctx.fill();
+			ctx.drawImage(images[this.players[type].image], X*step - size, Y*step - size, size*2, size*2);
 			ctx.globalAlpha = 1;
 		}
 	}
@@ -386,7 +385,7 @@ class HumanAi extends Ai {
 class MinimaxAi extends Ai {
 	constructor(invert, size) {
 		super();
-		this.deep = size < 4 ? 6 : 4;
+		this.deep = size < 4 ? 6 : 4; // half-turns ahead
 		this.invert = invert;
 	}
 
@@ -535,16 +534,17 @@ function getSettings() {
 	v0 = parseInt(s0.value);
 	v1 = parseInt(s1.value);
 	settings = [...gameValues[v0], v1];
-	if (v0 > 3 && v1 == 4) {
-		settings[3] = 3;
-		v1 = 3;
-		s1.value = 3;
+	if (v0 > 3 && (v1 == 4 || (v1 == 0 && (v1=2, true)))) {
+		v1--;
+		settings[3] = v1;
+		s1.value = v1;
 	}
 
 	// change text in html
 	let [t0, t1] = document.getElementsByClassName("comment");
 	t0.innerHTML = comments[0][v0];
 	t1.innerHTML = comments[1][v1];
+	if (div != null) for (let i = 0; i < div.children.length; i++) div.children[i].className = i == v1 ? "" : "invisible";
 }
 
 function newGame(start) {
@@ -577,9 +577,15 @@ function init() {
 
 	ctx = canvas.getContext("2d");
 
-	images = ["#00f", "#f00"];
+	images = document.querySelectorAll("img.invisible");
+	div = document.getElementById("ai-image");
+	for (let i = 0; i < 5; i++) {
+		let img = document.createElement("img");
+		img.src = "images/"+i+".png";
+		if (i != settings[3]) img.className = "invisible";
+		div.appendChild(img);
+	}
 
-	getSettings();
 	newGame(true);
 	window.addEventListener("mousedown", evt => {game.players.forEach(p => p.click(evt))});
 }

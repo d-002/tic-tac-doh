@@ -1,8 +1,8 @@
 <html>
 	<head>
 		<title>Tic tac d'oh!</title>
-		<link rel="stylesheet" href="style.css?v=B0.2.1">
-		<script src="script.js?v=B0.2.1"></script>
+		<link rel="stylesheet" href="style.css?v=1.0">
+		<script src="script.js?v=1.0"></script>
 	</head>
 
 	<body onload="init()">
@@ -12,7 +12,6 @@
 		</div>
 		<div id="main">
 			<div class="left">
-				<span class="error">This game is in beta. Please report bugs when you see them!</span>
 				<p>Choose the gamemode</p>
 				<select id="gamemode">
 					<option value="0">Classic</option>
@@ -33,14 +32,19 @@
 					<option value="4">Lisa</option>
 				</select>
 				<p class="comment"></p>
+				<div id="ai-image"></div>
 
 				<div class="br"></div>
 				<p>Warning, the latter will reset the current game!</p>
 				<a href="javascript:newGame(true)">Apply</a>
+				<p class="comment">I do not own the Simpsons. The Simpsons are a property of Fox Broadcasting Company.</p>
 			</div>
 			<div class="right">
 				<canvas id="canvas" width=700 height=700></canvas>
 			</div>
 		</div>
+
+		<img src="images/player.png" class="invisible">
+		<img src="images/opponent.png" class="invisible">
 	</body>
 </html>

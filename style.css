@@ -1,16 +1,16 @@
 @font-face {
 	font-family: simpsons;
-	src: url("simpsons.otf");
+	src: url("fonts/simpsons.otf");
 }
 
 @font-face {
 	font-family: varela;
-	src: url("varela.ttf");
+	src: url("fonts/varela.ttf");
 }
 
 @font-face {
 	font-family: vanilla;
-	src: url("vanilla.ttf");
+	src: url("fonts/vanilla.ttf");
 }
 
 body, html {
@@ -25,13 +25,13 @@ body {
 	flex-direction: column;
 
 	font-family: vanilla;
-	background-color: #282828;
-	color: white;
+	background-color: #f8db27;
+	color: #c06;
 }
 
 canvas {
 	border-radius: 8px;
-	background-color: #151515;
+	background-color: #fced9a;
 }
 
 #header {
@@ -49,7 +49,7 @@ h1 {
 	font-family: simpsons;
 	font-weight: bold;
 	font-size: 60px;
-	color: #fde43f;
+	color: #9c5b01;
 }
 
 h2 {
@@ -58,24 +58,27 @@ h2 {
 	font-family: varela;
 	font-weight: bold;
 	font-size: 20px;
+	color: #9c5b01;
 }
 
 #main {
 	display: flex;
 	width: 100%;
-	height: 100%;
+	height: calc(100% - 130px);
 
-	background-color: #363636;
+	background-color: #dce4f8;
 }
 
 .left {
+	display: flex;
+	flex-direction: column;
 	overflow: auto;
 
 	padding: 20px;
 	max-width: 400px;
 	height: calc(100% - 40px);
 
-	background-color: #474747;
+	background-color: #ffaad5;
 }
 
 .right {
@@ -98,11 +101,10 @@ p {
 p.comment {
 	font-family: varela;
 	font-size: 14px;
-	color: #ddd;
 }
 
 span.error {
-	color: #f77;
+	color: #2f64d6;
 }
 
 select, a {
@@ -112,20 +114,20 @@ select, a {
 	font-size: 14px;
 
 	border-radius: 3px;
-	color: #fff;
+	color: #9c5b01;
 }
 
 select {
 	padding: 2px;
 
-	border: 2px solid #ccc;
-	background-color: #252525;
+	border: 2px solid #9c5b01;
+	background-color: #fff;
 }
 
 .br {
 	width: 100%;
 	height: 30px;
-	border-bottom: 1px solid #aaa;
+	border-bottom: 1px solid #b26801;
 }
 
 a {
@@ -137,12 +139,23 @@ a {
 	text-decoration: none;
 	text-align: center;
 
-	border: 2px solid #555;
-	background-color: #363636;
+	border: 2px solid #9c5b01;
+	background-color: #fefade;
 }
 
 a:hover {
-	background-color: #444;
-	border-color: #777;
-	box-shadow: 0 0 5px #777;
+	background-color: #fced98;
+	border-color: #ac6b11;
+	box-shadow: 0 0 5px #c06;
+}
+
+img.invisible {
+	display: none;
+}
+
+#ai-image {
+	display: flex;
+	justify-content: center;
+	overflow: hidden;
+	max-height: 500px;
 }
