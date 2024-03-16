@@ -69,7 +69,7 @@ h2 {
 	background-color: #dce4f8;
 }
 
-.left {
+.left, #popup>div:not(.black) {
 	display: flex;
 	flex-direction: column;
 	overflow: auto;
@@ -149,8 +149,8 @@ a:hover {
 	box-shadow: 0 0 5px #c06;
 }
 
-img.invisible {
-	display: none;
+.invisible {
+	display: none !important;
 }
 
 #ai-image {
@@ -158,4 +158,36 @@ img.invisible {
 	justify-content: center;
 	overflow: hidden;
 	max-height: 500px;
+}
+
+#popup>div.black {
+	position: fixed;
+	top: 0;
+	left: 0;
+
+	width: 100%;
+	height: 100%;
+
+	background-color: rgba(0, 0, 0, 0.5);
+	backdrop-filter: blur(5px);
+}
+
+#popup>div:not(.black) {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+
+	display: flex;
+	flex-direction: column;
+	max-width: 500px;
+	min-height: 300px;
+	height: unset;
+
+	border-radius: 15px;
+}
+
+#popup img {
+	border-radius: 8px;
+	border: 5px dashed #fff;
 }

@@ -3,6 +3,7 @@ let game, interval;
 let gamesPlayed = 0;
 let fps = 60;
 let images, div;
+let popups, pCount;
 
 let settings = [NaN, NaN, NaN, NaN]; // size, pieces, required, AI level
 let gameValues = [[3, 5, 3], [3, 3, 3], [4, 8, 4], [4, 4, 4], [8, 32, 4], [8, 6, 4]];
@@ -385,7 +386,7 @@ class HumanAi extends Ai {
 class MinimaxAi extends Ai {
 	constructor(invert, size) {
 		super();
-		this.deep = size < 4 ? 6 : 4; // half-turns ahead
+		this.deep = size < 4 ? 8 : 4; // half-turns ahead
 		this.invert = invert;
 	}
 
@@ -528,6 +529,20 @@ function eq(l1, l2) {
 	return true; */
 }
 
+function popup() {
+	pCount--;
+
+	// display the current popup
+	let l = popups.children.length;
+	popups.children[0].className = pCount == 0 ? "invisible black" : "black";
+	for (let i = 1; i < l; i++) popups.children[i].className = l-i == pCount ? "" : "invisible";
+
+	if (pCount == 0) {
+		newGame(true);
+		window.addEventListener("mousedown", evt => {game.players.forEach(p => p.click(evt))});
+	}
+}
+
 function getSettings() {
 	// update settings
 	let [s0, s1] = document.getElementsByTagName("select");
@@ -586,6 +601,8 @@ function init() {
 		div.appendChild(img);
 	}
 
-	newGame(true);
-	window.addEventListener("mousedown", evt => {game.players.forEach(p => p.click(evt))});
+	popups = document.getElementById("popup");
+	pCount = popups.children.length;
+	popup();
+	popups.className = ""; // don't show the popups div before it is set up
 }
