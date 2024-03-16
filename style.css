@@ -130,7 +130,7 @@ select {
 	border-bottom: 1px solid #b26801;
 }
 
-a {
+a:not(#topright>a) {
 	transition: background-color .1s linear, border-color .1s linear, box-shadow .4s ease-in-out;
 	box-sizing: border-box;
 	display: inline-block;
@@ -143,7 +143,7 @@ a {
 	background-color: #fefade;
 }
 
-a:hover {
+a:not(#topright>a):hover {
 	background-color: #fced98;
 	border-color: #ac6b11;
 	box-shadow: 0 0 5px #c06;
@@ -190,4 +190,41 @@ a:hover {
 #popup img {
 	border-radius: 8px;
 	border: 5px dashed #fff;
+}
+
+#topright {
+	position: fixed;
+	top: 0;
+	right: 0;
+
+	padding: 10px;
+	display: flex;
+	gap: 10px;
+}
+
+#topright>a {
+	transition: 0.1s transform ease-out, 0.2s border-radius ease-out, 0.2s background-color ease-out;
+
+	overflow: hidden;
+	border-radius: 50%;
+	background-color: rgba(255, 255, 255, 0.4);
+}
+
+#topright>a:hover {
+	transform: scale(1.05);
+	border-radius: 30%;
+	background-color: rgba(255, 255, 255, 0.7);
+}
+
+#topright>a:active {
+	transform: scale(1.15);
+}
+
+#topright>a:active img {
+	filter: invert(0.3);
+}
+
+#topright img {
+	width: 60px;
+	height: 60px;
 }

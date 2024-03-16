@@ -1,8 +1,8 @@
 <html>
 	<head>
 		<title>Tic tac d'oh!</title>
-		<link rel="stylesheet" href="style.css?v=1.0.1">
-		<script src="script.js?v=1.0.1"></script>
+		<link rel="stylesheet" href="style.css?v=1.1">
+		<script src="script.js?v=1.1"></script>
 	</head>
 
 	<body onload="init()">
@@ -44,17 +44,21 @@
 			</div>
 		</div>
 
+		<div id="topright">
+			<a href="javascript:updateSound()"><img src="images/sound.png" id="sound"></a>
+		</div>
+
 		<div id="popup" class="invisible">
 			<div class="black"></div>
 			<div>
-				<img src="images/sounds.png">
+				<img src="images/popups/sounds.png">
 				<p>This game uses sounds for extra fun, but you can turn this off in the settings. Otherwise, turn up the volume!</p>
 				<span class="error">UPCOMING FEATURE</span>
 				<p class="comment">We use cookies, exclusively to save your preferences. By using this website, you agree to their use.</p>
 				<a href="javascript:popup()">Ok, got it.</a>
 			</div>
 			<div>
-				<img src="images/gamemode.png">
+				<img src="images/popups/gamemode.png">
 				<p>Try out all the gamemodes, not just the first one! Try the ones with moving pieces for example... and also different bots!</p>
 				<a href="javascript:popup()">Sounds nice, now let me play!</a>
 			</div>

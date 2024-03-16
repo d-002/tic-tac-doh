@@ -4,6 +4,8 @@ let gamesPlayed = 0;
 let fps = 60;
 let images, div;
 let popups, pCount;
+let soundImg;
+let sound = true;
 
 let settings = [NaN, NaN, NaN, NaN]; // size, pieces, required, AI level
 let gameValues = [[3, 5, 3], [3, 3, 3], [4, 8, 4], [4, 4, 4], [8, 32, 4], [8, 6, 4]];
@@ -20,6 +22,28 @@ let comments = [
 	"Bart Simpson plays like an average human being, trying to win and prevent you from doing the same.",
 	"Lisa Simpson has studied every possible strategy, plans multiple turns ahead... At least try to tie!"]
 ];
+
+function importCookies() {
+	let cookie = document.cookie.split("; ");
+	sound = true;
+	cookie.forEach(c => {
+		let i = c.indexOf("=");
+		let [key,value] = c.split("=");
+		if (key == "sound") sound = value == "1" ? true : false;
+	});
+
+	updateSound(false);
+}
+
+function updateSound(toggle=true) {
+	// update image
+	if (toggle) sound = !sound;
+	soundImg.src = "images/" + (sound ? "" : "no") + "sound.png";
+
+	// update cookies
+	let date = new Date(Date.now()+2592000000).toGMTString();
+	document.cookie = "sound=" + (sound ? "1" : "0") + "; expires=" + date + "; path=/";
+}
 
 class Game {
 	constructor(p1, p2, size, maxPieces, required, aiStarts) {
@@ -537,6 +561,7 @@ function popup() {
 	popups.children[0].className = pCount == 0 ? "invisible black" : "black";
 	for (let i = 1; i < l; i++) popups.children[i].className = l-i == pCount ? "" : "invisible";
 
+	// launch the game when the last popup is closed
 	if (pCount == 0) {
 		newGame(true);
 		window.addEventListener("mousedown", evt => {game.players.forEach(p => p.click(evt))});
@@ -586,22 +611,26 @@ function newGame(start) {
 
 function init() {
 	canvas = document.getElementById("canvas");
+	popups = document.getElementById("popup");
+	soundImg = document.getElementById("sound");
+	images = document.querySelectorAll("img.invisible");
+	div = document.getElementById("ai-image");
+
 	H = canvas.parentNode.getBoundingClientRect().height-40;
 	canvas.setAttribute("width", H);
 	canvas.setAttribute("height", H);
 
 	ctx = canvas.getContext("2d");
 
-	images = document.querySelectorAll("img.invisible");
-	div = document.getElementById("ai-image");
 	for (let i = 0; i < 5; i++) {
 		let img = document.createElement("img");
-		img.src = "images/"+i+".png";
+		img.src = "images/ai/"+i+".png";
 		if (i != settings[3]) img.className = "invisible";
 		div.appendChild(img);
 	}
 
-	popups = document.getElementById("popup");
+	importCookies();
+
 	pCount = popups.children.length;
 	popup();
 	popups.className = ""; // don't show the popups div before it is set up
