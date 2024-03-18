@@ -5,7 +5,8 @@ let fps = 60;
 let images, div;
 let popups, pCount;
 let soundImg;
-let sound = true;
+let soundActivated = true;
+let sounds = [];
 
 let settings = [NaN, NaN, NaN, NaN]; // size, pieces, required, AI level
 let gameValues = [[3, 5, 3], [3, 3, 3], [4, 8, 4], [4, 4, 4], [8, 32, 4], [8, 6, 4]];
@@ -25,24 +26,28 @@ let comments = [
 
 function importCookies() {
 	let cookie = document.cookie.split("; ");
-	sound = true;
+	let firstVisit = true;
+	soundActivated = true;
 	cookie.forEach(c => {
 		let i = c.indexOf("=");
 		let [key,value] = c.split("=");
-		if (key == "sound") sound = value == "1" ? true : false;
+		if (key == "sound") soundActivated = value == "1" ? true : false;
+		firstVisit = false; // cookies stored, so it's not the first visit
 	});
 
 	updateSound(false);
+
+	return firstVisit;
 }
 
 function updateSound(toggle=true) {
 	// update image
-	if (toggle) sound = !sound;
-	soundImg.src = "images/" + (sound ? "" : "no") + "sound.png";
+	if (toggle) soundActivated = !soundActivated;
+	soundImg.src = "images/" + (soundActivated ? "" : "no") + "sound.png";
 
 	// update cookies
 	let date = new Date(Date.now()+2592000000).toGMTString();
-	document.cookie = "sound=" + (sound ? "1" : "0") + "; expires=" + date + "; path=/";
+	document.cookie = "sound=" + (soundActivated ? "1" : "0") + "; expires=" + date + "; path=/";
 }
 
 class Game {
@@ -138,10 +143,23 @@ class Game {
 			if (w != 0) {
 				this.over = true;
 				console.log(w);
+
+				if (soundActivated) {
+					let won = w != -1 && this.players[w-1] instanceof Player;
+					let i = won ? 2 : 3 + parseInt(Math.random()*8);
+					sounds[i].currentTime = 0;
+					sounds[i].play();
+				}
 			}
 
 			// update current player, except when someone won
 			else if (this.players[this.turnId-1].play()) {
+				if (soundActivated) {
+					let i = this.turnCount < this.maxPieces ? 0 : 1;
+					sounds[i].currentTime = 0;
+					sounds[i].play();
+				}
+
 				this.turnId = 3-this.turnId;
 				if (this.turnId == 1) this.turnCount++;
 			}
@@ -260,6 +278,10 @@ class Player {
 			if (game.board[y][x] == this.id) { // set selection
 				this.selection = [x, y];
 				this.selectionStart = Date.now();
+				if (soundActivated) {
+					sounds[0].currentTime = 0;
+					sounds[0].play();
+				}
 			}
 			else if (game.board[y][x] == 0 && this.selection != null && game.areLinked(this.selection, [x, y])) {
 				game.board[this.selection[1]][this.selection[0]] = 0;
@@ -629,9 +651,12 @@ function init() {
 		div.appendChild(img);
 	}
 
-	importCookies();
+	sounds.push(new Audio("sounds/place.mp3"));
+	sounds.push(new Audio("sounds/select.mp3"));
+	sounds.push(new Audio("sounds/punch.mp3"));
+	for (let i = 0; i < 8; i++) sounds.push(new Audio("sounds/doh"+i+".mp3"));
 
-	pCount = popups.children.length;
+	pCount = importCookies() ? popups.children.length : 1;
 	popup();
 	popups.className = ""; // don't show the popups div before it is set up
 }
